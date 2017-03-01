@@ -7,3 +7,5 @@ export {HtmlSplitter} from './html-splitter';
 export {PolymerProject} from './polymer-project';
 export {addServiceWorker, generateServiceWorker} from './service-worker';
 export {AddServiceWorkerOptions} from './service-worker';
+export {addPushManifest, generatePushManifest} from './push-manifest';
+export {AddPushManifestOptions} from './push-manifest';
