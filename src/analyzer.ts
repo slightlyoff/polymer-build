@@ -33,7 +33,7 @@ export interface DocumentDeps {
   imports: Array<string>;
   scripts: Array<string>;
   styles: Array<string>;
-  [key:string]: Array<string>;
+  [key: string]: Array<string>;
 }
 
 export interface DepsIndex {

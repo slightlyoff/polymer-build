@@ -49,7 +49,7 @@ function getDepsObject(
   ];
   // TODO(slightlyoff): what about other dependent resource types? Fonts?
 
-  let output:any = Object.create(null);
+  let output: any = Object.create(null);
   // log(<any>depsIndex);
 
   depsIndex.fragmentToFullDeps.forEach(
@@ -57,12 +57,12 @@ function getDepsObject(
     // Workaround for TS brokenness on String::split
     // let localFile = file.substr(root.length);
     let localFile = file.split(root)[1];
-    let item:any = output[localFile] = {};
+    let item: any = output[localFile] = {};
     types.forEach(({name, defaults}) => {
       assets[name].forEach((f) => {
         // TODO(slightlyoff): support custom config
         item[f] = defaults;
-      })
+      });
     });
   });
 
@@ -95,7 +95,7 @@ export async function generatePushManifest(options: AddPushManifestOptions):
 
   return await<Promise<Buffer>>(new Promise((resolve) => {
     logger.debug(`writing push manifest...`);
-    resolve(new Buffer(JSON.stringify(depsObject, null, "  ")));
+    resolve(new Buffer(JSON.stringify(depsObject, null, '  ')));
   }));
 }
 
