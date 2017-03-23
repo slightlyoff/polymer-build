@@ -1,6 +1,6 @@
 {
   "name": "polymer-build",
-  "version": "0.8.2",
+  "version": "0.9.1",
   "description": "A library of Gulp build tasks",
   "main": "lib/polymer-build.js",
   "typings": "lib/polymer-build.d.ts",
@@ -9,7 +9,7 @@
     "build": "gulp build",
     "test": "gulp test",
     "prepublish": "gulp lint && gulp test",
-    "format": "find src/ test/ -iname '*.ts' -o -iname '*.js' | xargs clang-format --style=file -i"
+    "format": "find src/ -iname '*.ts' -o -iname '*.js' | xargs clang-format --style=file -i"
   },
   "repository": {
     "type": "git",
@@ -22,15 +22,16 @@
   },
   "homepage": "https://github.com/Polymer/polymer-build#readme",
   "dependencies": {
+    "@types/node": "^4.2.3",
     "@types/parse5": "^2.2.32",
     "@types/vinyl": "^1.1.29",
     "@types/vinyl-fs": "0.0.28",
     "dom5": "^2.0.1",
     "multipipe": "^1.0.2",
     "parse5": "^2.2.2",
-    "plylog": "^0.4.0",
-    "polymer-analyzer": "2.0.0-alpha.27",
-    "polymer-bundler": "2.0.0-pre.7",
+    "plylog": "^0.5.0",
+    "polymer-analyzer": "2.0.0-alpha.34",
+    "polymer-bundler": "2.0.0-pre.11",
     "polymer-project-config": "^2.0.0",
     "sw-precache": "^4.2.0",
     "vinyl": "^1.1.1",

@@ -57,9 +57,9 @@ suite('PolymerProject', () => {
           const expected = [
             'index.html',
             'shell.html',
-            'source-dir/my-app.html',
+            path.join('source-dir', 'my-app.html'),
           ];
-          assert.sameMembers(names, expected);
+          assert.deepEqual(names.sort(), expected);
           done();
         });
   });
@@ -78,6 +78,12 @@ suite('PolymerProject', () => {
     assert.isTrue(getFlowingState(dependencyStream));
   });
 
+  test('the bundler method returns a different bundler each time', () => {
+    const bundlerA = defaultProject.bundler();
+    const bundlerB = defaultProject.bundler();
+    assert.notEqual(bundlerA, bundlerB);
+  });
+
   suite('.dependencies()', () => {
 
     test('reads dependencies', (done) => {
@@ -87,10 +93,10 @@ suite('PolymerProject', () => {
       dependencyStream.on('end', () => {
         const names = files.map((f) => unroot(f.path));
         const expected = [
-          'bower_components/dep.html',
-          'bower_components/loads-external-dependencies.html',
+          path.join('bower_components', 'dep.html'),
+          path.join('bower_components', 'loads-external-dependencies.html'),
         ];
-        assert.sameMembers(names, expected);
+        assert.deepEqual(names.sort(), expected);
         done();
       });
     });
@@ -135,11 +141,11 @@ suite('PolymerProject', () => {
           dependencyStream.on('end', () => {
             const names = files.map((f) => unroot(f.path));
             const expected = [
-              'bower_components/dep.html',
-              'bower_components/unreachable-dep.html',
-              'bower_components/loads-external-dependencies.html',
+              path.join('bower_components', 'dep.html'),
+              path.join('bower_components', 'loads-external-dependencies.html'),
+              path.join('bower_components', 'unreachable-dep.html'),
             ];
-            assert.sameMembers(names, expected);
+            assert.deepEqual(names.sort(), expected);
             done();
           });
         });

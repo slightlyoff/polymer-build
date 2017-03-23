@@ -13,14 +13,12 @@
  */
 
 import * as path from 'path';
-import {Analyzer} from 'polymer-analyzer';
-import {UrlLoader} from 'polymer-analyzer/lib/url-loader/url-loader';
-import {Severity, Warning} from 'polymer-analyzer/lib/warning/warning';
+import {Analyzer, Severity, UrlLoader, Warning} from 'polymer-analyzer';
 import {PassThrough, Transform} from 'stream';
 
 import File = require('vinyl');
 import {src as vinylSrc} from 'vinyl-fs';
-import {parse as parseUrl} from 'url';
+import {parseUrl} from 'polymer-analyzer/lib/utils';
 import * as logging from 'plylog';
 import {ProjectConfig} from 'polymer-project-config';
 
@@ -47,17 +45,6 @@ export interface DepsIndex {
 }
 
 /**
- * Detects if a url is external by checking it's protocol. Also checks if it
- * starts with '//', which can be an alias to the page's current protocol
- * in the browser.
- */
-function isDependencyExternal(url: string) {
-  // TODO(fks) 08-01-2016: Add additional check for files on current hostname
-  // but external to this application root. Ignore them.
-  return parseUrl(url).protocol !== null || url.startsWith('//');
-}
-
-/**
  * Get a longer, single-line error message for logging and exeption-handling
  * analysis Warning objects.
  *
@@ -77,11 +64,11 @@ function getFullWarningMessage(warning: Warning): string {
  * and file loading/resolution can't block each other while waiting.
  */
 class ResolveTransform extends Transform {
-  analyzer: BuildAnalyzer;
+  private _buildAnalyzer: BuildAnalyzer;
 
-  constructor(analyzer: BuildAnalyzer) {
+  constructor(buildAnalyzer: BuildAnalyzer) {
     super({objectMode: true});
-    this.analyzer = analyzer;
+    this._buildAnalyzer = buildAnalyzer;
   }
 
   _transform(
@@ -89,7 +76,7 @@ class ResolveTransform extends Transform {
       _encoding: string,
       callback: (error?: Error, data?: File) => void): void {
     try {
-      this.analyzer.resolveFile(file);
+      this._buildAnalyzer.resolveFile(file);
     } catch (err) {
       callback(err);
       return;
@@ -111,15 +98,15 @@ class ResolveTransform extends Transform {
  * themselves.
  */
 class AnalyzeTransform extends Transform {
-  analyzer: BuildAnalyzer;
+  private _buildAnalyzer: BuildAnalyzer;
 
-  constructor(analyzer: BuildAnalyzer) {
+  constructor(buildAnalyzer: BuildAnalyzer) {
     // A high `highWaterMark` value is needed to keep this from pausing the
     // entire source stream.
     // TODO(fks) 02-02-2017: Move analysis out of the source stream itself so
     // that it no longer blocks during analysis.
     super({objectMode: true, highWaterMark: 10000});
-    this.analyzer = analyzer;
+    this._buildAnalyzer = buildAnalyzer;
   }
 
   _transform(
@@ -128,7 +115,7 @@ class AnalyzeTransform extends Transform {
       callback: (error?: Error, data?: File) => void): void {
     (async() => {
       try {
-        await this.analyzer.analyzeFile(file);
+        await this._buildAnalyzer.analyzeFile(file);
       } catch (err) {
         callback(err);
         return;
@@ -349,7 +336,7 @@ export class BuildAnalyzer {
   }
 
   /**
-   * A side-channel to add files to the loader that did not come throgh the
+   * A side-channel to add files to the loader that did not come through the
    * stream transformation. This is for generated files, like
    * shared-bundle.html. This should probably be refactored so that the files
    * can be injected into the stream.
@@ -405,7 +392,7 @@ export class BuildAnalyzer {
         doc.getByKind('import', {externalPackages: true, imported: true});
     for (const importFeature of importFeatures) {
       const importUrl = importFeature.url;
-      if (isDependencyExternal(importUrl)) {
+      if (!this.analyzer.canResolveUrl(importUrl)) {
         logger.debug(`ignoring external dependency: ${importUrl}`);
       } else if (importFeature.type === 'html-script') {
         scripts.add(importUrl);
@@ -492,16 +479,16 @@ export type DeferredFileCallbacks = {
 
 export class StreamLoader implements UrlLoader {
   config: ProjectConfig;
-  analyzer: BuildAnalyzer;
+  private _buildAnalyzer: BuildAnalyzer;
 
   // Store files that have not yet entered the Analyzer stream here.
   // Later, when the file is seen, the DeferredFileCallback can be
   // called with the file contents to resolve its loading.
   deferredFiles = new Map<string, DeferredFileCallbacks>();
 
-  constructor(analyzer: BuildAnalyzer) {
-    this.analyzer = analyzer;
-    this.config = this.analyzer.config;
+  constructor(buildAnalyzer: BuildAnalyzer) {
+    this._buildAnalyzer = buildAnalyzer;
+    this.config = this._buildAnalyzer.config;
   }
 
   hasDeferredFile(filePath: string): boolean {
@@ -524,28 +511,25 @@ export class StreamLoader implements UrlLoader {
     this.deferredFiles.delete(filePath);
   }
 
-  canLoad(_url: string): boolean {
-    // We want to return true for all files. Even external files, so that we
-    // can resolve them as empty strings for now.
-    return true;
+  // We can't load external dependencies.
+  canLoad(url: string): boolean {
+    return this._buildAnalyzer.analyzer.canResolveUrl(url);
   }
 
-  load(url: string): Promise<string> {
+  async load(url: string): Promise<string> {
     logger.debug(`loading: ${url}`);
     const urlObject = parseUrl(url);
 
-    // Resolve external files as empty strings. We filter these out later
-    // in the analysis process to make sure they aren't included in the build.
-    if (isDependencyExternal(url)) {
-      return Promise.resolve('');
+    if (!this.canLoad(url)) {
+      throw new Error('Unable to load ${url}.');
     }
 
-    const urlPath = decodeURIComponent(urlObject.pathname);
+    const urlPath = urlObject.pathname;
     const filePath = pathFromUrl(this.config.root, urlPath);
-    const file = this.analyzer.getFile(filePath);
+    const file = this._buildAnalyzer.getFile(filePath);
 
     if (file) {
-      return Promise.resolve(file.contents.toString());
+      return file.contents.toString();
     }
 
     return new Promise(
@@ -553,9 +537,9 @@ export class StreamLoader implements UrlLoader {
           this.deferredFiles.set(filePath, {resolve, reject});
           try {
             if (this.config.isSource(filePath)) {
-              this.analyzer.sourcePathAnalyzed(filePath);
+              this._buildAnalyzer.sourcePathAnalyzed(filePath);
             } else {
-              this.analyzer.dependencyPathAnalyzed(filePath);
+              this._buildAnalyzer.dependencyPathAnalyzed(filePath);
             }
           } catch (err) {
             this.rejectDeferredFile(filePath, err);

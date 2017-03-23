@@ -3,9 +3,10 @@ const gulp = require('gulp');
 const logging = require('plylog');
 const mergeStream = require('merge-stream');
 
+logging.setVerbose();
+
 const polymer = require('../../lib/polymer-build');
 
-logging.setVerbose();
 
 const PolymerProject = polymer.PolymerProject;
 const fork = polymer.forkStream;
@@ -64,7 +65,7 @@ gulp.task('test1', ['clean'], (cb) => {
   // this fork will generate the bundle files for the project
   let bundledPhase =
       fork(allFiles)
-          .pipe(project.bundler)
+          .pipe(project.bundler())
           // write to the bundled folder
           // TODO(justinfagnani): allow filtering of files before writing
           .pipe(gulp.dest('build/bundled'));

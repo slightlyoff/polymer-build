@@ -5,9 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## Unreleased
+<!--## Unreleased-->
 
 <!-- List New Changes Here -->
+
+## [0.9.1] - 2017-03-20
+
+* Fixed issue with Service Worker generation in Windows environment where full paths were put into its precacheConfig instead of relative paths.
+* Bundled files always use canonical platform separators in their paths now.  Previously, files might have either back-slashes or forward-slashes on Windows, depending on how they arrived at the Bundler and this caused the Analyzer to treat files as missing when mapping them by path.
+
+## [0.9.0] - 2017-03-15
+
+* [breaking] PolymerProject's `bundler` property is now a `bundler()` method, returning a new BuildBundler stream on each call.  This is to support parallel pipelines using bundler.
+
+## [0.8.4] - 2017-03-04
+
+* Build now delegates authority to the Analyzer for what urls are package external instead of local heuristics.
+* Bundling now processes files coming in from streams, to support things like js-minification before bundling.
+
+## [0.8.3] - 2017-03-03
+
+* Dependency updates.
 
 ## [0.8.2] - 2017-02-24
 

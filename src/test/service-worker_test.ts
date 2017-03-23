@@ -141,12 +141,10 @@ suite('service-worker', () => {
               })
               .then((swFile: Buffer) => {
                 const fileContents = swFile.toString();
-                assert.include(fileContents, path.join('"/index.html"'));
-                assert.include(fileContents, path.join('"/shell.html"'));
-                assert.include(
-                    fileContents, path.join('"/bower_components/dep.html"'));
-                assert.notInclude(
-                    fileContents, path.join('"/source-dir/my-app.html"'));
+                assert.include(fileContents, '"/index.html"');
+                assert.include(fileContents, '"/shell.html"');
+                assert.include(fileContents, '"/bower_components/dep.html"');
+                assert.notInclude(fileContents, '"/source-dir/my-app.html"');
               });
         });
 
@@ -161,14 +159,10 @@ suite('service-worker', () => {
               })
               .then((swFile: Buffer) => {
                 const fileContents = swFile.toString();
-                assert.include(fileContents, path.join('"/index.html"'));
-                assert.include(fileContents, path.join('"/shell.html"'));
-                assert.notInclude(
-                    fileContents, path.join('"shared-bundle.html"'));
-                assert.notInclude(
-                    fileContents, path.join('"/bower_components/dep.html"'));
-                assert.notInclude(
-                    fileContents, path.join('"/source-dir/my-app.html"'));
+                assert.include(fileContents, '"/index.html"');
+                assert.include(fileContents, '"/shell.html"');
+                assert.notInclude(fileContents, '"/bower_components/dep.html"');
+                assert.notInclude(fileContents, '"/source-dir/my-app.html"');
               });
         });
 
@@ -184,13 +178,10 @@ suite('service-worker', () => {
           })
           .then((swFile: Buffer) => {
             const fileContents = swFile.toString();
-            assert.include(fileContents, path.join('"/index.html"'));
-            assert.include(fileContents, path.join('"/shell.html"'));
-            assert.notInclude(fileContents, path.join('"shared-bundle.html"'));
-            assert.include(
-                fileContents, path.join('"/bower_components/dep.html"'));
-            assert.notInclude(
-                fileContents, path.join('"/source-dir/my-app.html"'));
+            assert.include(fileContents, '"/index.html"');
+            assert.include(fileContents, '"/shell.html"');
+            assert.include(fileContents, '"/bower_components/dep.html"');
+            assert.notInclude(fileContents, '"/source-dir/my-app.html"');
           });
     });
 
