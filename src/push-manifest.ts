@@ -93,7 +93,7 @@ export async function generatePushManifest(options: AddPushManifestOptions):
   const project = options.project;
   let root = project.config.root;
   // Root is always a directory; ensure we strip '/' later
-  if (root.lastIndexOf('/') != (root.length-1)) { root += '/'; }
+  if (root.lastIndexOf('/') !== (root.length - 1)) { root += '/'; }
   const stripRoot = getStripRootFunction(root);
   const depsIndex = await project.analyzer.analyzeDependencies;
 
