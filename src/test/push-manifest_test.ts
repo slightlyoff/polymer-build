@@ -127,7 +127,7 @@ suite('push-manifest', () => {
               })
               .then((pmFile: Buffer) => {
                 const fileContents = pmFile.toString();
-                assert.include(fileContents, path.join('"/shell.html"'));
+                assert.include(fileContents, path.join('"shell.html"'));
                 assert.include(
                     fileContents, path.join('"bower_components/dep.html"'));
                 assert.notInclude(
@@ -150,7 +150,7 @@ suite('push-manifest', () => {
                 path.join(testBuildRoot, 'push_manifest.json'), 'utf-8');
             assert.include(
                 content,
-                '{\n  "/shell.html": {\n    "bower_components/dep.html":');
+                '{\n  "shell.html": {\n    "bower_components/dep.html":');
           });
     });
 

@@ -21,7 +21,7 @@ import {PolymerProject} from './polymer-project';
 
 const logger = logging.getLogger('polymer-build.push-manifest');
 // logger.debug = console.log.bind(console);
-// let log = logger.debug;
+let log = logger.debug;
 
 export interface AddPushManifestOptions {
   project: PolymerProject;
@@ -30,12 +30,21 @@ export interface AddPushManifestOptions {
   path?: string;
 }
 
+function getStripRootFunction(root: string): Function {
+  return function(file: string) {
+    if (file.indexOf(root) !== 0) { return file; }
+    return file.split(root)[1];
+  };
+};
+
 /**
  * Returns an object populated with mappings of entry-point files to resources
  * using information provided in the DepsIndex object.
  */
 function getDepsObject(
     depsIndex: DepsIndex, root: string): Object {
+
+  let stripRoot = getStripRootFunction(root);
   let types = [
     { name: 'scripts',
       defaults: { type: 'script', 'weight': 1 },
@@ -48,18 +57,19 @@ function getDepsObject(
     }
   ];
   // TODO(slightlyoff): what about other dependent resource types? Fonts?
+  // log(<any>depsIndex);
 
   let output: any = Object.create(null);
-  // log(<any>depsIndex);
 
   depsIndex.fragmentToFullDeps.forEach(
       (assets: DocumentDeps, file: string) => {
-    // Workaround for TS brokenness on String::split
-    // let localFile = file.substr(root.length);
-    let localFile = file.split(root)[1];
+    let localFile = stripRoot(file);
     let item: any = output[localFile] = {};
     types.forEach(({name, defaults}) => {
       assets[name].forEach((f) => {
+        f = stripRoot(f);
+        // Don't emit push for circular dep.
+        if (localFile === f) { return; }
         // TODO(slightlyoff): support custom config
         item[f] = defaults;
       });
@@ -81,20 +91,40 @@ export async function generatePushManifest(options: AddPushManifestOptions):
 
   options = Object.assign({}, options);
   const project = options.project;
-  // logger.debug(<any>project);
-  const root = project.config.root;
+  let root = project.config.root;
+  // Root is always a directory; ensure we strip '/' later
+  if (root.lastIndexOf('/') != (root.length-1)) { root += '/'; }
+  const stripRoot = getStripRootFunction(root);
   const depsIndex = await project.analyzer.analyzeDependencies;
-  // let staticFileGlobs = Array.from(swPrecacheConfig.staticFileGlobs || []);
+
+  // If we've been handed both an entrypoint and a shell in the project, ensure
+  // that we output the shell's deps for the entrypoint (plus the shell
+  // location); avoid adding the shell to the output to ensure we don't over-
+  // push. See the docs for details:
+  //    https://www.polymer-project.org/1.0/toolbox/server#app-entrypoint
+  let entrypoint = project.config.entrypoint;
+  let shell = project.config.shell;
+  let fullDepsMap = depsIndex.fragmentToFullDeps;
+
+  if ( ((entrypoint !== undefined) && (shell !== undefined)) &&
+       (fullDepsMap.has(shell) && !fullDepsMap.has(entrypoint)) ) {
+      let shellDeps = fullDepsMap.get(shell);
+      let entrypointDeps = Object.assign({}, shellDeps);
+      entrypointDeps.imports.unshift(stripRoot(shell));
+      fullDepsMap.set(entrypoint, entrypointDeps);
+      // TODO: should we remove the shell from the deps list? Do we risk over-
+      // push if we don't?
+  }
+
   const depsObject = (options.bundled) ?
       Object.create(null) :
       getDepsObject(depsIndex, root);
 
-  // logger.debug(JSON.stringify(depsObject, null, "  "));
-
   // TODO(slightlyoff): what about static file dependencies?
 
   return await<Promise<Buffer>>(new Promise((resolve) => {
-    logger.debug(`writing push manifest...`);
+    log(`writing push manifest...`);
+    // log(JSON.stringify(depsObject, null, '  '));
     resolve(new Buffer(JSON.stringify(depsObject, null, '  ')));
   }));
 }
