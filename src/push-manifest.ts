@@ -99,21 +99,23 @@ export async function generatePushManifest(options: AddPushManifestOptions):
 
   // If we've been handed both an entrypoint and a shell in the project, ensure
   // that we output the shell's deps for the entrypoint (plus the shell
-  // location); avoid adding the shell to the output to ensure we don't over-
-  // push. See the docs for details:
+  // location); avoid adding the shell to the output. See docs for details:
   //    https://www.polymer-project.org/1.0/toolbox/server#app-entrypoint
   let entrypoint = project.config.entrypoint;
   let shell = project.config.shell;
   let fullDepsMap = depsIndex.fragmentToFullDeps;
+  const hasEntrypointAndShell = (
+    ((entrypoint !== undefined) && (shell !== undefined)) &&
+    (fullDepsMap.has(shell) && !fullDepsMap.has(entrypoint)) );
 
-  if ( ((entrypoint !== undefined) && (shell !== undefined)) &&
-       (fullDepsMap.has(shell) && !fullDepsMap.has(entrypoint)) ) {
-      let shellDeps = fullDepsMap.get(shell);
-      let entrypointDeps = Object.assign({}, shellDeps);
-      entrypointDeps.imports.unshift(stripRoot(shell));
-      fullDepsMap.set(entrypoint, entrypointDeps);
-      // TODO: should we remove the shell from the deps list? Do we risk over-
-      // push if we don't?
+  // If we get an entrypoint and shell, we want to ONLY output a push mapping
+  // for the entrypoint. This prevents over-push and simplifies server config.
+  if (hasEntrypointAndShell) {
+    let shellDeps = fullDepsMap.get(shell);
+    let entrypointDeps = Object.assign({}, shellDeps);
+    entrypointDeps.imports.unshift(stripRoot(shell));
+    fullDepsMap.clear(); // Clobber other resource mappings
+    fullDepsMap.set(entrypoint, entrypointDeps);
   }
 
   const depsObject = (options.bundled) ?
